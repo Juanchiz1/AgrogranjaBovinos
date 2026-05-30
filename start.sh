@@ -27,6 +27,10 @@ php -r "
     'SESSION_LIFETIME=' . (getenv('SESSION_LIFETIME') ?: '120'),
     'QUEUE_CONNECTION=' . (getenv('QUEUE_CONNECTION') ?: 'sync'),
     'FILESYSTEM_DISK=' . (getenv('FILESYSTEM_DISK') ?: 'local'),
+    'CLOUDINARY_CLOUD_NAME=' . (getenv('CLOUDINARY_CLOUD_NAME') ?: ''),
+    'CLOUDINARY_API_KEY=' . (getenv('CLOUDINARY_API_KEY') ?: ''),
+    'CLOUDINARY_API_SECRET=' . (getenv('CLOUDINARY_API_SECRET') ?: ''),
+    'CLOUDINARY_URL=' . (getenv('CLOUDINARY_URL') ?: ''),
 ];
 file_put_contents('/app/.env', implode(PHP_EOL, \$lines) . PHP_EOL);
 echo 'DB_HOST=' . (getenv('DB_HOST') ?: 'NOT SET') . PHP_EOL;
