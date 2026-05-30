@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+rm -f /app/.env
+
 echo "==> Generating .env from environment variables..."
 
 php -r "
