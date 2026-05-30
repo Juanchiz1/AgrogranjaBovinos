@@ -103,3 +103,5 @@
   document.querySelector('[name="cantidad"]')?.addEventListener('input', calcTotal);
 
 })();
+
+
