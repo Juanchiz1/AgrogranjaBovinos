@@ -1,0 +1,978 @@
+@extends('layouts.app')
+@section('title', $animal->nombre_lote ?: $animal->especie)
+@section('page_title', ($emojis[$animal->especie]??'🐾').' '.($animal->nombre_lote ?: $animal->especie))
+@section('back_url', route('animales.index'))
+
+@push('head')
+<link rel="stylesheet" href="{{ asset('css/animales.css') }}">
+@endpush
+
+@section('content')
+@php
+  $em = $emojis[$animal->especie] ?? '🐾';
+  $badgeClass = ['activo'=>'badge-green','vendido'=>'badge-brown','muerte'=>'badge-red'][$animal->estado] ?? 'badge-green';
+  $balance = $totalIngresos - $totalGastos;
+  $tieneProduccion = $animal->produccion && !in_array(strtolower(trim($animal->produccion)), ['carne','','null']);
+  $esBovino = in_array($animal->especie, ['Ganado bovino','Terneros']);
+@endphp
+
+{{-- HERO --}}
+<div class="animal-hero">
+  @if($animal->foto)
+    <img src="{{ asset($animal->foto) }}" alt="{{ $animal->nombre_lote }}" onclick="openLightbox(this.src)">
+  @elseif($fotos->count())
+    <img src="{{ asset($fotos->first()->ruta) }}" onclick="openLightbox(this.src)">
+  @else
+    <div class="animal-hero-placeholder">{{ $em }}</div>
+  @endif
+  <div style="position:absolute;top:12px;right:12px;display:flex;gap:6px;">
+    <span class="badge {{ $badgeClass }}">{{ $animal->estado }}</span>
+    @if($animal->favorito) <span style="background:#fef9c3;border-radius:99px;padding:2px 8px;font-size:.8rem;">⭐ Favorito</span>@endif
+    @if($animal->atencion_especial) <span style="background:#fef2f2;border-radius:99px;padding:2px 8px;font-size:.8rem;color:#dc2626;">🚨 Atención</span>@endif
+  </div>
+</div>
+
+{{-- MINI STATS --}}
+<div class="stats-grid mb-3" style="grid-template-columns:repeat(3,1fr);gap:10px;">
+  <div class="stat-card"><div class="stat-value text-green">{{ $animal->cantidad }}</div><div class="stat-label">animales</div></div>
+  <div class="stat-card"><div class="stat-value" style="{{ $balance<0?'color:var(--rojo)':'' }}">${{ abs($balance)>=1000?round(abs($balance)/1000,1).'k':number_format(abs($balance),0,',','.') }}</div><div class="stat-label">balance</div></div>
+  <div class="stat-card"><div class="stat-value">{{ $animal->peso_promedio ? $animal->peso_promedio.$animal->unidad_peso : '—' }}</div><div class="stat-label">peso prom.</div></div>
+</div>
+
+{{-- CALCULADORA DE VENTA --}}
+@if($animal->estado === 'activo' && ($animal->precio_kilo || $animal->precio_unidad))
+<div class="venta-calc">
+  <p style="font-weight:700;color:#166534;margin-bottom:8px;">💰 Valor estimado de venta</p>
+  @if($animal->vende_por_kilo && $animal->precio_kilo && $animal->peso_promedio)
+    <div style="font-size:1.4rem;font-weight:800;color:#16a34a;">
+      ${{ number_format($animal->precio_kilo * $animal->peso_promedio * $animal->cantidad, 0, ',', '.') }}
+    </div>
+    <div style="font-size:.78rem;color:#166534;">{{ $animal->cantidad }} animal(es) × {{ $animal->peso_promedio }}{{ $animal->unidad_peso }} × ${{ number_format($animal->precio_kilo,0,',','.') }}/kg</div>
+  @elseif($animal->precio_unidad)
+    <div style="font-size:1.4rem;font-weight:800;color:#16a34a;">
+      ${{ number_format($animal->precio_unidad * $animal->cantidad, 0, ',', '.') }}
+    </div>
+    <div style="font-size:.78rem;color:#166534;">{{ $animal->cantidad }} animal(es) × ${{ number_format($animal->precio_unidad,0,',','.') }}/cabeza</div>
+  @endif
+  @if($animal->estado === 'activo')
+  <button onclick="openModal('modalSalida')" class="btn btn-sm btn-primary mt-2" style="font-size:.82rem;">Registrar venta / sacrificio →</button>
+  @endif
+</div>
+@endif
+
+{{-- INFORMACIÓN --}}
+<div class="section-card">
+  <div class="section-header">
+    <div class="section-title">📋 Información</div>
+    <button onclick="openModal('modalEditar')" class="btn btn-sm btn-secondary">✏️ Editar</button>
+  </div>
+  <div class="info-row"><span class="info-label">Especie</span><span class="info-value">{{ $em }} {{ $animal->especie }}</span></div>
+  <div class="info-row"><span class="info-label">Etapa</span><span class="info-value">{{ ['cria'=>'🐣 Cría','juvenil'=>'🐥 Juvenil','adulto'=>'✅ Adulto'][$animal->etapa_vida??'adulto'] }}</span></div>
+  @if($animal->ubicacion)<div class="info-row"><span class="info-label">Ubicación</span><span class="info-value">📍 {{ $animal->ubicacion }}</span></div>@endif
+  @if($animal->propietario)<div class="info-row"><span class="info-label">Propietario</span><span class="info-value">👤 {{ $animal->propietario }}</span></div>@endif
+  @if($animal->produccion)<div class="info-row"><span class="info-label">Produce</span><span class="info-value">🥛 {{ $animal->produccion }}</span></div>@endif
+  @if($animal->fecha_nacimiento)<div class="info-row"><span class="info-label">Nacimiento</span><span class="info-value">🎂 {{ \Carbon\Carbon::parse($animal->fecha_nacimiento)->format('d/m/Y') }} ({{ \Carbon\Carbon::parse($animal->fecha_nacimiento)->diffForHumans(null,true) }})</span></div>@endif
+  @if($animal->fecha_ingreso)<div class="info-row"><span class="info-label">Ingreso a finca</span><span class="info-value">{{ \Carbon\Carbon::parse($animal->fecha_ingreso)->format('d/m/Y') }}</span></div>@endif
+  @if($animal->atencion_motivo)<div style="margin-top:10px;padding:8px 10px;background:#fef2f2;border-radius:8px;font-size:.83rem;color:#dc2626;">🚨 {{ $animal->atencion_motivo }}</div>@endif
+  @if($animal->notas)<div style="margin-top:10px;padding:8px 10px;background:var(--verde-bg);border-radius:8px;font-size:.83rem;color:var(--verde-dark);">📝 {{ $animal->notas }}</div>@endif
+
+  {{-- ── INFO BOVINO (Fase 4) ──────────────────────────────────── --}}
+  @if($esBovino)
+  @if($animal->raza ?? false)
+  <div class="info-row"><span class="info-label">🐄 Raza</span><span class="info-value">{{ $animal->raza }}</span></div>
+  @endif
+  @if($animal->categoria_bovina ?? false)
+  <div class="info-row"><span class="info-label">Categoría</span><span class="info-value">{{ str_replace('_',' ',$animal->categoria_bovina) }}</span></div>
+  @endif
+  @if($animal->madre_id ?? false)
+  @php $madreInfo = DB::table('animales')->find($animal->madre_id); @endphp
+  @if($madreInfo)
+  <div class="info-row">
+    <span class="info-label">🐄 Madre</span>
+    <span class="info-value">
+      <a href="{{ route('animales.show',$madreInfo->id) }}" style="color:var(--verde-dark);font-weight:600;">
+        {{ $madreInfo->nombre_lote }}
+      </a>
+    </span>
+  </div>
+  @endif
+  @endif
+  @if($animal->padre_descripcion ?? false)
+  <div class="info-row"><span class="info-label">🐂 Padre</span><span class="info-value">{{ $animal->padre_descripcion }}</span></div>
+  @endif
+  @if($animal->peso_meta_kg ?? false)
+  <div class="info-row">
+    <span class="info-label">⚖️ Meta peso</span>
+    <span class="info-value">
+      {{ $animal->peso_meta_kg }} kg
+      @if($animal->peso_promedio)
+        @php $pct = round(($animal->peso_promedio/$animal->peso_meta_kg)*100); @endphp
+        <span style="font-size:.72rem;color:{{ $pct>=90?'#15803d':($pct>=60?'#1d4ed8':'#b45309') }};">
+          ({{ $pct }}% del objetivo)
+        </span>
+      @endif
+    </span>
+  </div>
+  @endif
+  @endif
+  {{-- ── FIN INFO BOVINO ───────────────────────────────────────── --}}
+
+  {{-- ACCIONES RÁPIDAS --}}
+  <div class="flex gap-2 mt-3" style="flex-wrap:wrap;">
+    <form method="POST" action="{{ route('animales.favorito',$animal->id) }}">@csrf
+      <button class="btn btn-sm btn-ghost">{{ $animal->favorito?'⭐ Quitar favorito':'⭐ Marcar favorito' }}</button>
+    </form>
+    <form method="POST" action="{{ route('animales.atencion',$animal->id) }}">@csrf
+      <button class="btn btn-sm btn-ghost" style="{{ $animal->atencion_especial?'color:var(--rojo)':'' }}">
+        {{ $animal->atencion_especial?'✅ Sin atención':'🚨 Necesita atención' }}
+      </button>
+    </form>
+    @if($animal->estado==='activo')
+    <button onclick="openModal('modalSalida')" class="btn btn-sm btn-ghost" style="color:var(--marron);">
+      💰 Venta/Sacrificio
+    </button>
+    @endif
+    @if($tieneProduccion)
+    <button onclick="openModal('modalProduccion')" class="btn btn-sm btn-ghost" style="color:var(--verde-dark);">
+      🥛 Registrar producción
+    </button>
+    <a href="{{ route('produccion-animal.index') }}?animal_id={{ $animal->id }}" class="btn btn-sm btn-ghost">
+      📊 Ver historial
+    </a>
+    @endif
+    @if($esBovino)
+    <a href="{{ route('bovino.hato') }}" class="btn btn-sm btn-ghost" style="color:#15803d;">
+      🐄 Ir a Hato Bovino
+    </a>
+    @endif
+  </div>
+</div>
+
+{{-- RENTABILIDAD --}}
+<div class="section-card">
+  <div class="section-title mb-3">💹 Rentabilidad</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+    <div style="background:var(--verde-bg);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-size:.72rem;color:var(--text-secondary);">Ingresos</div>
+      <div style="font-weight:800;color:var(--verde-dark);">${{ number_format($totalIngresos,0,',','.') }}</div>
+    </div>
+    <div style="background:#fef2f2;border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-size:.72rem;color:var(--text-secondary);">Gastos</div>
+      <div style="font-weight:800;color:var(--rojo);">${{ number_format($totalGastos,0,',','.') }}</div>
+    </div>
+  </div>
+  <div class="flex justify-between" style="font-size:.85rem;">
+    <span>Balance</span>
+    <strong style="{{ $balance>=0?'color:var(--verde-dark)':'color:var(--rojo)' }}">{{ $balance>=0?'+':'-' }}${{ number_format(abs($balance),0,',','.') }}</strong>
+  </div>
+</div>
+
+{{-- RENTABILIDAD ANIMAL VENDIDO --}}
+@if($animal->estado === 'vendido' && $animal->valor_venta)
+@php
+    $fechaInicio   = $animal->fecha_ingreso ?? $animal->creado_en;
+    $fechaFin      = $animal->fecha_venta   ?? now()->toDateString();
+    $gastosPeriodo = DB::table('gastos')
+        ->where('usuario_id', session('usuario_id'))
+        ->where('animal_id', $animal->id)
+        ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+        ->sum('valor');
+    $rentabilidad = $animal->valor_venta - $gastosPeriodo;
+@endphp
+<div class="section-card">
+    <div class="section-title mb-3">📊 Rentabilidad estimada</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div style="background:#f0faf5;border-radius:10px;padding:12px;text-align:center;">
+            <p style="font-size:11px;color:#6B7280;margin-bottom:4px;">Valor venta</p>
+            <p style="font-size:1.1rem;font-weight:700;color:#1D9E75;">${{ number_format($animal->valor_venta,0,',','.') }}</p>
+        </div>
+        <div style="background:#fff8f0;border-radius:10px;padding:12px;text-align:center;">
+            <p style="font-size:11px;color:#6B7280;margin-bottom:4px;">Gastos</p>
+            <p style="font-size:1.1rem;font-weight:700;color:#B45309;">${{ number_format($gastosPeriodo,0,',','.') }}</p>
+        </div>
+        <div style="background:{{ $rentabilidad>=0?'#f0faf5':'#fef2f2' }};border-radius:10px;padding:12px;text-align:center;">
+            <p style="font-size:11px;color:#6B7280;margin-bottom:4px;">Ganancia neta</p>
+            <p style="font-size:1.1rem;font-weight:700;color:{{ $rentabilidad>=0?'#1D9E75':'#DC2626' }};">
+                {{ $rentabilidad>=0?'+':'' }}${{ number_format($rentabilidad,0,',','.') }}
+            </p>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- ══ FICHA GENEALÓGICA (Fase 4) ════════════════════════════════ --}}
+@if($esBovino && ($animal->madre_id || $animal->padre_descripcion || $genealogia['crias']->count() || $genealogia['partosBovinos']->count() || $genealogia['hermanos']->count()))
+<div class="section-card">
+  <div class="section-title" style="margin-bottom:14px;">🧬 Genealogía</div>
+
+  {{-- ÁRBOL VISUAL ──────────────────────────────────────────────── --}}
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+
+    {{-- Padre --}}
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                background:#fffbeb;border-radius:10px;border-left:3px solid #f59e0b;">
+      <span style="font-size:1.3rem;">🐂</span>
+      <div>
+        <div style="font-size:.72rem;color:#b45309;font-weight:700;text-transform:uppercase;">Padre</div>
+        <div style="font-weight:600;font-size:.88rem;">
+          {{ $animal->padre_descripcion ?? 'No registrado' }}
+        </div>
+      </div>
+    </div>
+
+    <div style="width:2px;height:12px;background:#e2e8f0;margin-left:24px;"></div>
+
+    {{-- Este animal --}}
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                background:#f0fdf4;border-radius:10px;border:2px solid #22c55e;">
+      <span style="font-size:1.4rem;">{{ $em }}</span>
+      <div style="flex:1;">
+        <div style="font-size:.72rem;color:#15803d;font-weight:700;text-transform:uppercase;">Este animal</div>
+        <div style="font-weight:800;font-size:.95rem;">{{ $animal->nombre_lote ?? $animal->especie }}</div>
+        @if($animal->raza)<div style="font-size:.75rem;color:#64748b;">{{ $animal->raza }}</div>@endif
+        @if($animal->fecha_nacimiento)
+        <div style="font-size:.72rem;color:#94a3b8;">
+          🎂 {{ \Carbon\Carbon::parse($animal->fecha_nacimiento)->format('d/m/Y') }}
+        </div>
+        @endif
+      </div>
+      @if($animal->categoria_bovina)
+      <span style="background:#e2e8f0;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:600;white-space:nowrap;">
+        {{ str_replace('_',' ',$animal->categoria_bovina) }}
+      </span>
+      @endif
+    </div>
+
+    <div style="width:2px;height:12px;background:#e2e8f0;margin-left:24px;"></div>
+
+    {{-- Madre --}}
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                background:#eff6ff;border-radius:10px;border-left:3px solid #3b82f6;">
+      <span style="font-size:1.3rem;">🐄</span>
+      <div>
+        <div style="font-size:.72rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Madre</div>
+        @if($genealogia['madre'])
+          <a href="{{ route('animales.show', $genealogia['madre']->id) }}"
+             style="font-weight:600;font-size:.88rem;color:#1d4ed8;text-decoration:none;">
+            {{ $genealogia['madre']->nombre_lote }}
+            @if($genealogia['madre']->raza)
+              <span style="color:#94a3b8;font-weight:400;"> · {{ $genealogia['madre']->raza }}</span>
+            @endif
+          </a>
+          <div style="font-size:.72rem;color:#64748b;">Toca para ver su ficha</div>
+        @else
+          <div style="font-weight:600;font-size:.88rem;color:#64748b;">No registrada</div>
+        @endif
+      </div>
+    </div>
+  </div>
+
+  {{-- HERMANOS --}}
+  @if($genealogia['hermanos']->count())
+  <div style="margin-bottom:12px;">
+    <div style="font-size:.78rem;font-weight:700;color:#64748b;margin-bottom:6px;">
+      👥 Hermanos ({{ $genealogia['hermanos']->count() }})
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      @foreach($genealogia['hermanos'] as $h)
+      <a href="{{ route('animales.show', $h->id) }}"
+         style="background:#f1f5f9;border-radius:20px;padding:4px 10px;
+                font-size:.78rem;font-weight:600;text-decoration:none;color:#334155;">
+        🐄 {{ $h->nombre_lote }}
+        @if($h->fecha_nacimiento)
+          <span style="color:#94a3b8;font-weight:400;">· {{ \Carbon\Carbon::parse($h->fecha_nacimiento)->format('d/m/Y') }}</span>
+        @endif
+      </a>
+      @endforeach
+    </div>
+  </div>
+  @endif
+
+  {{-- CRÍAS --}}
+  @if($genealogia['crias']->count())
+  <div style="margin-bottom:12px;">
+    <div style="font-size:.78rem;font-weight:700;color:#64748b;margin-bottom:6px;">
+      🍼 Crías registradas ({{ $genealogia['crias']->count() }})
+    </div>
+    @foreach($genealogia['crias'] as $cr)
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:7px 0;border-bottom:1px solid #e2e8f0;font-size:.83rem;">
+      <div>
+        <a href="{{ route('animales.show', $cr->id) }}"
+           style="font-weight:600;text-decoration:none;color:#1e293b;">
+          🐄 {{ $cr->nombre_lote }}
+        </a>
+        @if($cr->raza)<span style="color:#94a3b8;"> · {{ $cr->raza }}</span>@endif
+        @if($cr->padre_descripcion)
+          <div style="font-size:.72rem;color:#b45309;">🐂 {{ $cr->padre_descripcion }}</div>
+        @endif
+      </div>
+      <div style="text-align:right;color:#64748b;">
+        @if($cr->fecha_nacimiento){{ \Carbon\Carbon::parse($cr->fecha_nacimiento)->format('d/m/Y') }}@endif
+        @if($cr->categoria_bovina)
+          <span style="background:#e2e8f0;padding:1px 7px;border-radius:10px;font-size:.7rem;margin-left:4px;">
+            {{ str_replace('_',' ',$cr->categoria_bovina) }}
+          </span>
+        @endif
+      </div>
+    </div>
+    @endforeach
+  </div>
+  @endif
+
+  {{-- HISTORIAL DE PARTOS --}}
+  @if($genealogia['partosBovinos']->count())
+  <div>
+    <div style="font-size:.78rem;font-weight:700;color:#64748b;margin-bottom:6px;">
+      📋 Historial de partos ({{ $genealogia['partosBovinos']->count() }})
+    </div>
+    @foreach($genealogia['partosBovinos'] as $p)
+    @php
+      $sigServicio = DB::table('animal_reproduccion')
+          ->where('animal_id', $animal->id)
+          ->where('fecha_servicio', '>', $p->fecha_parto_real)
+          ->orderBy('fecha_servicio')->first();
+      $diasAbiertos = $sigServicio
+          ? \Carbon\Carbon::parse($p->fecha_parto_real)->diffInDays($sigServicio->fecha_servicio)
+          : null;
+    @endphp
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                padding:8px 10px;border-radius:8px;background:#f8fafc;margin-bottom:5px;font-size:.82rem;">
+      <div>
+        <div style="font-weight:700;">
+          🍼 Parto {{ \Carbon\Carbon::parse($p->fecha_parto_real)->format('d/m/Y') }}
+        </div>
+        <div style="color:#64748b;">
+          {{ $p->num_crias_vivas ?? 0 }}/{{ $p->num_crias_nacidas ?? 0 }} vivas
+          @if($p->sexo_cria) · {{ $p->sexo_cria }} @endif
+          @if($p->peso_cria_kg) · {{ $p->peso_cria_kg }} kg @endif
+          @if($p->macho_descripcion)
+            <div>🐂 {{ $p->macho_descripcion }}</div>
+          @endif
+        </div>
+      </div>
+      @if($diasAbiertos !== null)
+      <div style="text-align:right;font-size:.75rem;color:#64748b;">
+        Días abiertos<br>
+        <strong style="color:{{ $diasAbiertos <= 85 ? '#15803d' : ($diasAbiertos <= 120 ? '#b45309' : '#dc2626') }};">
+          {{ $diasAbiertos }} días
+        </strong>
+      </div>
+      @endif
+    </div>
+    @endforeach
+  </div>
+  @endif
+</div>
+@endif
+{{-- ══ FIN FICHA GENEALÓGICA ═══════════════════════════════════════ --}}
+
+{{-- GALERÍA --}}
+<div class="section-card">
+  <div class="section-header"><div class="section-title">📷 Galería ({{ $fotos->count() }})</div></div>
+  <div class="foto-grid">
+    @foreach($fotos as $f)
+    <div class="foto-thumb">
+      <img src="{{ asset($f->ruta) }}" onclick="openLightbox('{{ asset($f->ruta) }}')">
+      <form method="POST" action="{{ route('animales.fotos.delete',[$animal->id,$f->id]) }}" onsubmit="return confirm('¿Eliminar?')">@csrf
+        <button class="foto-thumb-del">✕</button>
+      </form>
+    </div>
+    @endforeach
+    <label class="foto-upload-btn" for="fotoAnimalInput">
+      <span style="font-size:1.5rem;">📷</span><span>Agregar foto</span>
+    </label>
+  </div>
+  <form method="POST" action="{{ route('animales.fotos.upload',$animal->id) }}" enctype="multipart/form-data" id="fotoAnimalForm" style="display:none;margin-top:12px;">@csrf
+    <input type="file" id="fotoAnimalInput" name="foto" accept="image/*" style="display:none;" onchange="previewAnimalFoto(this)">
+    <div id="fotoAnimalPreviewWrap" style="display:none;">
+      <img id="fotoAnimalPreview" style="width:100%;border-radius:10px;margin-bottom:10px;max-height:200px;object-fit:cover;">
+      <div class="form-group"><label>Título (opcional)</label><input type="text" name="titulo" class="form-control" placeholder="Ej: Julio 2026"></div>
+      <div class="flex gap-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="cancelFotoA()">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">📷 Subir</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{{-- HISTORIAL DE PESO --}}
+<div class="section-card">
+  <div class="section-header">
+    <div class="section-title">⚖️ Historial de peso ({{ $pesos->count() }})</div>
+    <button onclick="openModal('modalPeso')" class="btn btn-sm btn-primary">+ Pesaje</button>
+  </div>
+  @if($pesos->isEmpty())
+    <p style="text-align:center;color:var(--text-secondary);font-size:.85rem;padding:10px 0;">Sin pesajes registrados.</p>
+  @else
+    @foreach($pesos->take(6) as $p)
+    <div class="peso-row">
+      <div><div style="font-weight:600;">{{ $p->peso }} {{ $p->unidad }}</div>@if($p->notas)<div style="font-size:.75rem;color:var(--text-secondary);">{{ $p->notas }}</div>@endif</div>
+      <div style="font-size:.78rem;color:var(--text-muted);">{{ \Carbon\Carbon::parse($p->fecha)->format('d/m/Y') }}</div>
+    </div>
+    @endforeach
+    @if($pesos->count() > 1)
+    @php $primero=$pesos->last(); $ultimo=$pesos->first(); $ganancia=$ultimo->peso-$primero->peso; @endphp
+    <div style="margin-top:10px;padding:8px;background:var(--verde-bg);border-radius:8px;font-size:.82rem;color:var(--verde-dark);">
+      📈 Ganancia de peso: {{ $ganancia>0?'+':'' }}{{ $ganancia }} {{ $ultimo->unidad }} desde {{ \Carbon\Carbon::parse($primero->fecha)->format('d/m/Y') }}
+    </div>
+    @endif
+  @endif
+</div>
+
+{{-- PROPIETARIOS --}}
+<div class="section-card">
+  <div class="section-header">
+    <div class="section-title">👥 Propietarios</div>
+    <button onclick="openModal('modalPropietario')" class="btn btn-sm btn-ghost">+ Agregar</button>
+  </div>
+  @if($propietarios->isEmpty())
+    <div style="font-size:.85rem;color:var(--text-secondary);padding:8px 0;">{{ $animal->propietario ?? 'Sin propietario asignado.' }}</div>
+  @else
+    @foreach($propietarios as $pr)
+    <div class="propietario-row">
+      <div><div style="font-weight:600;">{{ $pr->nombre }}</div>@if($pr->telefono)<div style="font-size:.75rem;"><a href="tel:{{ $pr->telefono }}" style="color:var(--verde-dark);">📞 {{ $pr->telefono }}</a></div>@endif</div>
+      <div class="flex gap-2 items-center">
+        <span class="badge badge-green">{{ $pr->porcentaje }}%</span>
+        <form method="POST" action="{{ route('animales.propietario.delete',[$animal->id,$pr->id]) }}" onsubmit="return confirm('¿Eliminar?')">@csrf
+          <button class="btn btn-sm btn-danger btn-icon">🗑️</button>
+        </form>
+      </div>
+    </div>
+    @endforeach
+  @endif
+</div>
+
+{{-- GASTOS --}}
+@if($gastos->count())
+<div class="section-card">
+  <div class="section-header"><div class="section-title">💰 Gastos ({{ $gastos->count() }})</div><a href="{{ route('gastos.index') }}" class="btn btn-sm btn-ghost">Ver todos →</a></div>
+  @foreach($gastos->take(4) as $g)
+  <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.86rem;">
+    <div><div style="font-weight:600;">{{ $g->descripcion }}</div><div style="font-size:.74rem;color:var(--text-secondary);">{{ $g->categoria }} · {{ \Carbon\Carbon::parse($g->fecha)->format('d/m/Y') }}</div></div>
+    <div style="font-weight:700;color:var(--rojo);">-${{ number_format($g->valor,0,',','.') }}</div>
+  </div>
+  @endforeach
+</div>
+@endif
+
+{{-- LÍNEA DE TIEMPO --}}
+<div class="section-card">
+  <div class="section-header">
+    <div class="section-title">📜 Línea de tiempo</div>
+    <button onclick="openModal('modalEvento')" class="btn btn-sm btn-primary">+ Evento</button>
+  </div>
+  @if($timeline->isEmpty())
+    <p style="text-align:center;color:var(--text-secondary);font-size:.85rem;padding:12px 0;">La línea de tiempo se irá llenando con eventos, pesajes y gastos.</p>
+  @else
+  <div class="timeline">
+    @foreach($timeline as $item)
+    <div class="tl-item">
+      <div class="tl-dot {{ $item['tipo'] }}"></div>
+      <div class="tl-body">
+        <div class="tl-title">{{ $item['titulo'] }}</div>
+        @if($item['descripcion'])<div class="tl-desc">{{ $item['descripcion'] }}</div>@endif
+        @if($item['dosis']??null)<div class="tl-desc" style="color:#4f46e5;">💊 Dosis: {{ $item['dosis'] }}</div>@endif
+        @if($item['proxima_dosis']??null)<div class="tl-desc" style="color:#f59e0b;">📅 Próxima: {{ \Carbon\Carbon::parse($item['proxima_dosis'])->format('d/m/Y') }}</div>@endif
+        <div class="tl-date">📅 {{ \Carbon\Carbon::parse($item['fecha'])->format('d/m/Y') }}</div>
+        @if($item['foto']??null)<img class="tl-img" src="{{ asset($item['foto']) }}" onclick="openLightbox('{{ asset($item['foto']) }}')">@endif
+        @if($item['origen']==='evento')
+        <form method="POST" action="{{ route('animales.eventos.delete',[$animal->id,$item['id']]) }}" onsubmit="return confirm('¿Eliminar?')" style="margin-top:6px;">@csrf
+          <button class="btn btn-sm btn-ghost" style="font-size:.72rem;padding:2px 8px;color:var(--text-muted);">✕ Eliminar</button>
+        </form>
+        @endif
+      </div>
+    </div>
+    @endforeach
+  </div>
+  @endif
+</div>
+
+<div style="margin-bottom:80px;"></div>
+
+{{-- ════════════ MODALES ════════════ --}}
+
+{{-- Modal Producción --}}
+@if($tieneProduccion)
+<div class="modal-overlay" id="modalProduccion" style="display:none;">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 class="modal-title">🥛 Registrar producción</h3>
+    <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:14px;">
+      {{ $em }} {{ $animal->nombre_lote ?? $animal->especie }}
+      @if($animal->produccion) · <strong>{{ $animal->produccion }}</strong>@endif
+    </p>
+    <form method="POST" action="{{ route('produccion-animal.store') }}">
+      @csrf
+      <input type="hidden" name="animal_id" value="{{ $animal->id }}">
+      <div class="form-group">
+        <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">¿Para qué período?</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="chips-m">
+          <button type="button" class="chip-p active" onclick="setPm('dia',this)">Hoy</button>
+          <button type="button" class="chip-p" onclick="setPm('semana',this)">Esta semana</button>
+          <button type="button" class="chip-p" onclick="setPm('mes',this)">Este mes</button>
+        </div>
+        <input type="hidden" name="periodo" id="m-periodo" value="dia">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" name="fecha" id="m-fecha" class="form-control" value="{{ now()->toDateString() }}" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo_produccion" id="m-tipo" class="form-control" required onchange="mActUnidad(this)">
+            @php
+              $prodLower = strtolower($animal->produccion ?? '');
+              $tipoDefault = str_contains($prodLower,'leche') ? 'leche'
+                : (str_contains($prodLower,'huevo') ? 'huevos'
+                : (str_contains($prodLower,'lana') ? 'lana'
+                : (str_contains($prodLower,'miel') ? 'miel' : 'otro')));
+            @endphp
+            <option value="leche"  {{ $tipoDefault==='leche'  ? 'selected':'' }}>🥛 Leche</option>
+            <option value="huevos" {{ $tipoDefault==='huevos' ? 'selected':'' }}>🥚 Huevos</option>
+            <option value="lana"   {{ $tipoDefault==='lana'   ? 'selected':'' }}>🐑 Lana</option>
+            <option value="miel"   {{ $tipoDefault==='miel'   ? 'selected':'' }}>🍯 Miel</option>
+            <option value="otro"   {{ $tipoDefault==='otro'   ? 'selected':'' }}>📦 Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Cantidad *</label>
+          <input type="number" name="cantidad" class="form-control" placeholder="0" step="0.1" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Unidad</label>
+          <select name="unidad" id="m-unidad" class="form-control">
+            @if($tipoDefault==='leche')
+              <option>litros</option><option>ml</option>
+            @elseif($tipoDefault==='huevos')
+              <option>unidades</option><option>docenas</option>
+            @elseif($tipoDefault==='lana')
+              <option>kg</option><option>lb</option>
+            @else
+              <option>unidades</option><option>kg</option><option>litros</option>
+            @endif
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Precio unitario</label>
+          <input type="number" name="precio_unitario" class="form-control" placeholder="Opcional" step="100">
+        </div>
+        {{-- Destino --}}
+<div class="form-group">
+  <label>Destino</label>
+  <select name="destino" class="form-control" id="selectDestinoProd"
+          onchange="toggleCompradorProd(this.value)">
+    <option value="venta_directa">💰 Venta directa</option>
+    <option value="plaza_mercado">🏪 Plaza de mercado</option>
+    <option value="consumo_familiar">🏡 Consumo familiar</option>
+    <option value="donacion">🤝 Donación</option>
+    <option value="transformacion">🏭 Transformación</option>
+    <option value="inventario">📦 Guardar en inventario</option>
+  </select>
+</div>
+<div id="wrapCompradorProd">
+  <div class="form-group">
+    <label>Comprador</label>
+    <input type="text" name="comprador" id="inputCompradorProd"
+           class="form-control" placeholder="Nombre del comprador">
+  </div>
+  @if(isset($compradores) && $compradores->count())
+  <div class="form-group">
+    <label>Cliente guardado</label>
+    <select name="persona_id" class="form-control"
+            onchange="document.getElementById('inputCompradorProd').value=this.options[this.selectedIndex].text;this.value&&(document.getElementById('inputCompradorProd').value=this.options[this.selectedIndex].text)">
+      <option value="">— Seleccionar —</option>
+      @foreach($compradores as $cl)
+        <option value="{{ $cl->id }}">{{ $cl->nombre }}</option>
+      @endforeach
+    </select>
+  </div>
+  @endif
+</div>
+{{-- Persona que registra --}}
+@if(isset($personas) && $personas->count())
+<div class="form-group">
+  <label>👤 Registrado por</label>
+  <select name="registrador_id" class="form-control">
+    <option value="">— Sin asignar —</option>
+    @foreach($personas as $per)
+      <option value="{{ $per->id }}">{{ $per->nombre }}{{ $per->cargo ? ' · '.$per->cargo : '' }}</option>
+    @endforeach
+  </select>
+</div>
+@endif
+{{-- Agregar al inventario --}}
+<div id="wrapInvProd" style="display:none;">
+  <div style="background:#f0fdf4;border-radius:8px;padding:10px;margin-bottom:8px;font-size:.8rem;color:#15803d;">
+    📦 La producción se registrará como entrada en el inventario.
+  </div>
+  @if(isset($inventarioItems) && $inventarioItems->count())
+  <div class="form-group">
+    <label>¿A qué ítem del inventario?</label>
+    <select name="inventario_id" class="form-control">
+      <option value="">— Crear nuevo ítem —</option>
+      @foreach($inventarioItems as $inv)
+        <option value="{{ $inv->id }}">{{ $inv->nombre }} ({{ $inv->cantidad_actual }} {{ $inv->unidad }})</option>
+      @endforeach
+    </select>
+  </div>
+  @endif
+</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;margin-bottom:10px;">
+        <input type="checkbox" name="vendido" value="1">
+        Marcar como vendido (crea ingreso automáticamente)
+      </label>
+      <div class="form-group">
+        <label>Notas</label>
+        <input type="text" name="notas" id="m-notas" class="form-control" placeholder="Opcional">
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalProduccion')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+@endif
+
+{{-- Modal Editar --}}
+<div class="modal-overlay" id="modalEditar" style="display:none;">
+  <div class="modal-sheet"><div class="modal-handle"></div><h3 class="modal-title">✏️ Editar animal</h3>
+    <form method="POST" action="{{ route('animales.update',$animal->id) }}" enctype="multipart/form-data">@csrf
+      <input type="hidden" name="back" value="detalle">
+      <div class="form-group"><label>Especie *</label>
+        <select name="especie" class="form-control" required>
+          @foreach($especies as $e)<option {{ $animal->especie===$e?'selected':'' }}>{{ $e }}</option>@endforeach
+        </select>
+      </div>
+      <div class="form-group"><label>Nombre del lote</label><input type="text" name="nombre_lote" class="form-control" value="{{ $animal->nombre_lote }}"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Cantidad</label><input type="number" name="cantidad" class="form-control" value="{{ $animal->cantidad }}"></div>
+        <div class="form-group"><label>Estado</label>
+          <select name="estado" class="form-control">
+            <option {{ $animal->estado==='activo'?'selected':'' }} value="activo">Activo</option>
+            <option {{ $animal->estado==='vendido'?'selected':'' }} value="vendido">Vendido</option>
+            <option {{ $animal->estado==='muerte'?'selected':'' }} value="muerte">Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Peso promedio</label><input type="number" step="0.1" name="peso_promedio" class="form-control" value="{{ $animal->peso_promedio }}"></div>
+        <div class="form-group"><label>Unidad</label>
+          <select name="unidad_peso" class="form-control">
+            <option {{ ($animal->unidad_peso??'kg')==='kg'?'selected':'' }} value="kg">kg</option>
+            <option {{ ($animal->unidad_peso??'kg')==='lb'?'selected':'' }} value="lb">lb</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Ubicación</label><input type="text" name="ubicacion" class="form-control" value="{{ $animal->ubicacion }}" placeholder="Corral, potrero..."></div>
+        <div class="form-group"><label>Etapa de vida</label>
+          <select name="etapa_vida" class="form-control">
+            <option {{ ($animal->etapa_vida??'adulto')==='cria'?'selected':'' }} value="cria">🐣 Cría</option>
+            <option {{ ($animal->etapa_vida??'adulto')==='juvenil'?'selected':'' }} value="juvenil">🐥 Juvenil</option>
+            <option {{ ($animal->etapa_vida??'adulto')==='adulto'?'selected':'' }} value="adulto">✅ Adulto</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Propietario</label><input type="text" name="propietario" class="form-control" value="{{ $animal->propietario }}"></div>
+      <div class="form-group"><label>Produce</label><input type="text" name="produccion" class="form-control" value="{{ $animal->produccion }}" placeholder="Leche, Huevos, Lana, Cría..."></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Precio/kg (COP)</label><input type="number" step="100" name="precio_kilo" class="form-control" value="{{ $animal->precio_kilo }}"></div>
+        <div class="form-group"><label>Precio/cabeza (COP)</label><input type="number" step="100" name="precio_unidad" class="form-control" value="{{ $animal->precio_unidad }}"></div>
+      </div>
+      <div class="form-group"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="vende_por_kilo" {{ ($animal->vende_por_kilo??1)?'checked':'' }}> Se vende por kg</label></div>
+      {{-- ── CAMPOS BOVINOS (Fase 4) ──────────────────────────── --}}
+      @if($esBovino)
+      <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:8px;">
+        <div style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px;">🐄 Datos bovinos</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Raza</label>
+            <input type="text" name="raza" class="form-control"
+                   value="{{ $animal->raza ?? '' }}"
+                   placeholder="Brahman, Holstein...">
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select name="categoria_bovina" class="form-control">
+              <option value="">— Sin categoría —</option>
+              <option {{ ($animal->categoria_bovina ?? '') === 'vaca_lechera' ? 'selected' : '' }} value="vaca_lechera">Vaca lechera</option>
+              <option {{ ($animal->categoria_bovina ?? '') === 'vaca_carne'   ? 'selected' : '' }} value="vaca_carne">Vaca de carne</option>
+              <option {{ ($animal->categoria_bovina ?? '') === 'novilla'      ? 'selected' : '' }} value="novilla">Novilla</option>
+              <option {{ ($animal->categoria_bovina ?? '') === 'ternero'      ? 'selected' : '' }} value="ternero">Ternero</option>
+              <option {{ ($animal->categoria_bovina ?? '') === 'toro'         ? 'selected' : '' }} value="toro">Toro</option>
+              <option {{ ($animal->categoria_bovina ?? '') === 'buey'         ? 'selected' : '' }} value="buey">Buey</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Meta de peso al sacrificio (kg)</label>
+          <input type="number" name="peso_meta_kg" step="1" min="0"
+                 class="form-control" value="{{ $animal->peso_meta_kg ?? '' }}"
+                 placeholder="Ej: 450 kg">
+        </div>
+      </div>
+      @endif
+      {{-- ── FIN CAMPOS BOVINOS ────────────────────────────────── --}}
+      <div class="form-group"><label>Motivo atención especial</label><input type="text" name="atencion_motivo" class="form-control" value="{{ $animal->atencion_motivo }}" placeholder="Ej: Lesión en pata derecha"></div>
+      <div class="form-group"><label>Foto principal</label><input type="file" name="foto" class="form-control" accept="image/*"></div>
+      <div class="form-group"><label>Notas</label><textarea name="notas" class="form-control" rows="2">{{ $animal->notas }}</textarea></div>
+      <div class="flex gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalEditar')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Modal Pesaje --}}
+<div class="modal-overlay" id="modalPeso" style="display:none;">
+  <div class="modal-sheet"><div class="modal-handle"></div><h3 class="modal-title">⚖️ Registrar pesaje</h3>
+    <form method="POST" action="{{ route('animales.pesos.store',$animal->id) }}">@csrf
+      <div class="grid-2">
+        <div class="form-group"><label>Peso *</label><input type="number" step="0.1" name="peso" class="form-control" required placeholder="0"></div>
+        <div class="form-group"><label>Unidad</label>
+          <select name="unidad" class="form-control">
+            <option value="kg" {{ ($animal->unidad_peso??'kg')==='kg'?'selected':'' }}>kg</option>
+            <option value="lb" {{ ($animal->unidad_peso??'kg')==='lb'?'selected':'' }}>lb</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Fecha *</label><input type="date" name="fecha" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+      <div class="form-group"><label>Notas</label><input type="text" name="notas" class="form-control" placeholder="Observaciones..."></div>
+      <div class="flex gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalPeso')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">Guardar pesaje</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Modal Evento --}}
+<div class="modal-overlay" id="modalEvento" style="display:none;">
+  <div class="modal-sheet"><div class="modal-handle"></div><h3 class="modal-title">📝 Registrar evento</h3>
+    <form method="POST" action="{{ route('animales.eventos.store',$animal->id) }}" enctype="multipart/form-data">@csrf
+      <div class="form-group"><label>Tipo *</label>
+        <select name="tipo" class="form-control" required id="tipoEvento" onchange="toggleDosis()">
+          <option value="nota">📝 Nota</option>
+          <option value="medicamento">💊 Medicamento</option>
+          <option value="vacuna">💉 Vacuna</option>
+          <option value="traslado">🏃 Traslado de lote</option>
+          <option value="marcado">🏷️ Marcado / herrado</option>
+          <option value="nacimiento">🐣 Nacimiento / parto</option>
+          <option value="destete">🍼 Destete</option>
+          <option value="castracion">✂️ Castración</option>
+          <option value="enfermedad">🤒 Enfermedad</option>
+          <option value="recuperacion">💪 Recuperación</option>
+          <option value="otro">🔧 Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Descripción *</label><input type="text" name="titulo" class="form-control" required placeholder="Ej: Ivermectina 1% · Dosis: 5ml"></div>
+      <div id="dosisWrap" style="display:none;">
+        <div class="grid-2">
+          <div class="form-group"><label>Dosis / cantidad</label><input type="text" name="dosis" class="form-control" placeholder="Ej: 5ml, 1 pastilla"></div>
+          <div class="form-group"><label>Próxima dosis</label><input type="date" name="proxima_dosis" class="form-control"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>Detalle</label><textarea name="descripcion" class="form-control" rows="2" placeholder="Observaciones adicionales..."></textarea></div>
+      <div class="form-group"><label>Fecha *</label><input type="date" name="fecha" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+      @if(isset($personas) && $personas->count())
+      <div class="form-group"><label>Realizado por (opcional)</label>
+        <select name="persona_id" class="form-control">
+          <option value="">Sin asignar</option>
+          @foreach($personas as $per)
+            <option value="{{ $per->id }}">{{ $per->nombre }}{{ $per->cargo ? ' - '.$per->cargo : '' }}</option>
+          @endforeach
+        </select>
+      </div>
+      @endif
+      {{-- Consumo de inventario --}}
+@if(isset($inventarioItems) && $inventarioItems->count())
+<div class="form-group">
+  <label>📦 ¿Consumió un insumo del inventario?</label>
+  <select name="inventario_id" class="form-control" id="selectInvEvento"
+          onchange="document.getElementById('wrapInvEvento').style.display=this.value?'block':'none'">
+    <option value="">— Sin consumo —</option>
+    @foreach($inventarioItems->groupBy('categoria') as $cat => $items)
+      <optgroup label="{{ $cat }}">
+        @foreach($items as $item)
+          <option value="{{ $item->id }}"
+                  data-unidad="{{ $item->unidad }}"
+                  data-stock="{{ $item->cantidad_actual }}">
+            {{ $item->nombre }} (Stock: {{ $item->cantidad_actual }} {{ $item->unidad }})
+          </option>
+        @endforeach
+      </optgroup>
+    @endforeach
+  </select>
+</div>
+<div id="wrapInvEvento" style="display:none;" class="form-group">
+  <label>Cantidad usada (<span id="lblUnidadEvento">unidades</span>)</label>
+  <input type="number" name="inventario_cantidad" class="form-control"
+         step="any" min="0.01" placeholder="0.00"
+         oninput="document.getElementById('lblStockEvento').textContent=this.value">
+  <div style="font-size:.72rem;color:#64748b;margin-top:2px;">
+    Stock disponible: <strong id="lblStockEvento">—</strong>
+  </div>
+</div>
+@endif
+      <div class="form-group"><label>Foto del evento</label><input type="file" name="foto" class="form-control" accept="image/*"></div>
+      <div class="flex gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalEvento')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">Guardar evento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Modal Propietario --}}
+<div class="modal-overlay" id="modalPropietario" style="display:none;">
+  <div class="modal-sheet"><div class="modal-handle"></div><h3 class="modal-title">👥 Agregar propietario</h3>
+    <form method="POST" action="{{ route('animales.propietario.store',$animal->id) }}">@csrf
+      <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" class="form-control" required placeholder="Nombre del dueño"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>% participación</label><input type="number" step="0.1" name="porcentaje" class="form-control" value="50" min="1" max="100"></div>
+        <div class="form-group"><label>Teléfono</label><input type="tel" name="telefono" class="form-control" placeholder="3001234567"></div>
+      </div>
+      <div class="form-group"><label>Notas</label><input type="text" name="notas" class="form-control" placeholder="Condiciones, acuerdos..."></div>
+      <div class="flex gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalPropietario')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Modal Venta/Sacrificio --}}
+<div class="modal-overlay" id="modalSalida" style="display:none;">
+  <div class="modal-sheet"><div class="modal-handle"></div><h3 class="modal-title">💰 Registrar salida</h3>
+    <form method="POST" action="{{ route('animales.salida',$animal->id) }}">@csrf
+      <div class="form-group"><label>Tipo de salida *</label>
+        <select name="tipo_salida" class="form-control" required id="tipoSalida" onchange="toggleVentaFields()">
+          <option value="venta">💰 Venta</option>
+          <option value="sacrificio">🔪 Sacrificio</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Fecha *</label><input type="date" name="fecha" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+      <div id="ventaFields">
+        <div class="form-group"><label>Valor de venta (COP)</label>
+          <input type="number" step="100" name="valor_venta" class="form-control"
+            placeholder="{{ $valorVentaEst ? 'Estimado: $'.number_format($valorVentaEst,0,',','.') : 'Se calculará automáticamente' }}"
+            value="{{ $valorVentaEst }}">
+        </div>
+        <div class="form-group"><label>Comprador</label><input type="text" name="comprador" class="form-control" placeholder="Nombre del comprador"></div>
+      </div>
+      <div class="form-group"><label>Notas</label><textarea name="notas_salida" class="form-control" rows="2" placeholder="Observaciones..."></textarea></div>
+      <div style="background:#eff6ff;border-radius:8px;padding:10px;font-size:.82rem;color:#1d4ed8;margin-bottom:12px;">
+        💡 Si es una <strong>venta</strong>, se creará automáticamente un ingreso en el módulo de Ingresos.
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalSalida')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-full">Confirmar salida</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Lightbox --}}
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+@push('scripts')
+<script>
+function openModal(id) { var m=document.getElementById(id); if(!m)return; m.style.display='flex'; m.classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { var m=document.getElementById(id); if(!m)return; m.style.display='none'; m.classList.remove('open'); document.body.style.overflow=''; }
+document.querySelectorAll('.modal-overlay').forEach(function(m){ m.addEventListener('click',function(e){ if(e.target===this) closeModal(this.id); }); });
+
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function previewAnimalFoto(input) {
+  if (input.files && input.files[0]) {
+    const r = new FileReader();
+    r.onload = e => {
+      document.getElementById('fotoAnimalPreview').src = e.target.result;
+      document.getElementById('fotoAnimalPreviewWrap').style.display = 'block';
+      document.getElementById('fotoAnimalForm').style.display = 'block';
+    };
+    r.readAsDataURL(input.files[0]);
+  }
+}
+function cancelFotoA() {
+  document.getElementById('fotoAnimalInput').value = '';
+  document.getElementById('fotoAnimalPreviewWrap').style.display = 'none';
+  document.getElementById('fotoAnimalForm').style.display = 'none';
+}
+function toggleDosis() {
+  const tipo = document.getElementById('tipoEvento').value;
+  document.getElementById('dosisWrap').style.display = ['medicamento','vacuna'].includes(tipo) ? 'block' : 'none';
+}
+function toggleVentaFields() {
+  const tipo = document.getElementById('tipoSalida').value;
+  document.getElementById('ventaFields').style.display = tipo === 'venta' ? 'block' : 'none';
+}
+const mesesEs = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function setPm(periodo, btn) {
+  document.querySelectorAll('.chip-p').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('m-periodo').value = periodo;
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm = String(hoy.getMonth()+1).padStart(2,'0');
+  const dd = String(hoy.getDate()).padStart(2,'0');
+  const notas = document.getElementById('m-notas');
+  if (periodo === 'dia') {
+    document.getElementById('m-fecha').value = `${yyyy}-${mm}-${dd}`;
+    if (notas.value.startsWith('Producción semana') || notas.value.startsWith('Producción mes')) notas.value = '';
+  } else if (periodo === 'semana') {
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() - (hoy.getDay() === 0 ? 6 : hoy.getDay()-1));
+    const dl = String(lunes.getDate()).padStart(2,'0');
+    const ml = String(lunes.getMonth()+1).padStart(2,'0');
+    document.getElementById('m-fecha').value = `${yyyy}-${mm}-${dd}`;
+    notas.value = `Producción semana del ${dl}/${ml} al ${dd}/${mm}`;
+  } else if (periodo === 'mes') {
+    document.getElementById('m-fecha').value = `${yyyy}-${mm}-${dd}`;
+    notas.value = `Producción mes de ${mesesEs[hoy.getMonth()]} ${yyyy}`;
+  }
+}
+function mActUnidad(sel) {
+  const u = document.getElementById('m-unidad');
+  const mapa = { leche:['litros','ml'], huevos:['unidades','docenas'], lana:['kg','lb'], miel:['kg','litros'], otro:['unidades','kg','litros'] };
+  const ops = mapa[sel.value] || ['unidades'];
+  u.innerHTML = ops.map(o => `<option>${o}</option>`).join('');
+}
+
+function toggleCompradorProd(val) {
+  var wComp = document.getElementById('wrapCompradorProd');
+  var wInv  = document.getElementById('wrapInvProd');
+  if (wComp) wComp.style.display = val === 'inventario' ? 'none' : 'block';
+  if (wInv)  wInv.style.display  = val === 'inventario' ? 'block' : 'none';
+}
+
+document.getElementById('selectInvEvento') && document.getElementById('selectInvEvento')
+  .addEventListener('change', function() {
+    var opt = this.options[this.selectedIndex];
+    var lbl = document.getElementById('lblUnidadEvento');
+    var stk = document.getElementById('lblStockEvento');
+    if (lbl) lbl.textContent = opt.getAttribute('data-unidad') || 'unidades';
+    if (stk) stk.textContent = opt.getAttribute('data-stock') || '—';
+  });
+</script>
+@endpush
+@endsection
