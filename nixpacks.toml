@@ -2,7 +2,12 @@
 nixPkgs = ["php82", "phpPackages.composer", "php82Extensions.pdo", "php82Extensions.pdo_mysql", "php82Extensions.mbstring", "php82Extensions.tokenizer", "php82Extensions.xml", "php82Extensions.bcmath", "php82Extensions.fileinfo"]
 
 [phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader --ignore-platform-reqs"]
+cmds = [
+    "rm -f /app/.env",
+    "echo 'APP_URL=http://localhost' > /app/.env",
+    "echo 'APP_KEY=base64:placeholder000000000000000000000000000=' >> /app/.env",
+    "composer install --no-dev --optimize-autoloader --ignore-platform-reqs"
+]
 
 [start]
 cmd = "bash /app/start.sh"
