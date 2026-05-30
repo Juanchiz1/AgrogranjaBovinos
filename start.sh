@@ -38,6 +38,7 @@ file_put_contents('/app/.env', implode(PHP_EOL, \$lines) . PHP_EOL);
 echo 'DB_HOST=' . (getenv('DB_HOST') ?: 'NOT SET') . PHP_EOL;
 echo 'DB_DATABASE=' . (getenv('DB_DATABASE') ?: 'NOT SET') . PHP_EOL;
 "
+echo "==> Generating .env from environment variables..."
 
 echo "==> Running migrations..."
 php artisan config:clear
