@@ -6,10 +6,7 @@ use Illuminate\Http\UploadedFile;
 
 trait ManejadorImagenes
 {
-    /**
-     * Sube una imagen a Cloudinary (producción) o guarda en disco (local).
-     * Retorna la URL pública o ruta relativa según el entorno.
-     */
+    
     protected function guardarImagen(UploadedFile $archivo, string $subdirectorio): string
     {
         // En producción usar Cloudinary
@@ -28,9 +25,7 @@ trait ManejadorImagenes
         return "img/{$subdirectorio}/{$nombreArchivo}";
     }
 
-    /**
-     * Sube imagen a Cloudinary usando la API directamente (sin SDK).
-     */
+    
     private function subirCloudinary(UploadedFile $archivo, string $subdirectorio): string
     {
         $cloudName  = config('cloudinary.cloud_name');
@@ -93,7 +88,7 @@ trait ManejadorImagenes
             $apiKey    = config('cloudinary.api_key');
             $apiSecret = config('cloudinary.api_secret');
 
-            // URL ejemplo: https://res.cloudinary.com/dtl955chm/image/upload/v123/agrogranja/animales/archivo.jpg
+           
             if (preg_match('/\/upload\/(?:v\d+\/)?(.+)\.[a-z]+$/i', $ruta, $m)) {
                 $publicId  = $m[1];
                 $timestamp = time();

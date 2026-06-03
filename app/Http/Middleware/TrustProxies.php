@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class TrustProxies extends Middleware
 {
-    // Confiar en todos los proxies (Railway, Cloudflare, etc.)
+
     protected $proxies = '*';
 
     protected $headers = Request::HEADER_X_FORWARDED_FOR |

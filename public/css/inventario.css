@@ -1,8 +1,4 @@
-/*
- * Agrogranja — Inventario
- * Estilos específicos del módulo.
- * Cargado solo en las vistas: inventario
- */
+
 
 /* ── Inventario ──────────────────────────────────────── */
 .tabs-inv{display:flex;gap:5px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;}

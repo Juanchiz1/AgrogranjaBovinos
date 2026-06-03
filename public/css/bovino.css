@@ -1,9 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
-   AGROGRANJA · MÓDULO BOVINO — Fase 4
-   Destino: public/css/bovino.css
-   ════════════════════════════════════════════════════════════════════ */
 
-/* ── STATS DEL HATO ─────────────────────────────────────────────── */
 .hato-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

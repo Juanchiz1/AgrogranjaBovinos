@@ -1,8 +1,4 @@
-/*
- * Agrogranja — Ingresos
- * Estilos específicos del módulo.
- * Cargado solo en las vistas: ingresos
- */
+
 
 /* ── Ingresos ──────────────────────────────────────── */
 .tabs-ingresos { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; }

@@ -16,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Forzar HTTPS en producción (Railway termina SSL en el proxy)
+      
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }

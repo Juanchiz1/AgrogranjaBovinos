@@ -275,40 +275,39 @@
 </head>
 <body>
 
-<!-- ── PANEL FOTOS (desktop) ── -->
+
 <div class="photo-panel">
 
     <div class="photo-mosaic">
 
-        <!-- Col izq, filas 1-2: crops-2 (portrait alto, montaña/finca) -->
+        
         <div class="mosaic-item p-crops2">
             <img src="<?php echo e(asset('img/galeria/crops-2.jpg')); ?>" alt="Finca colombiana">
         </div>
 
-        <!-- Col der, fila 1: cows (portrait, vacas en corral) -->
+        
         <div class="mosaic-item p-cows">
             <img src="<?php echo e(asset('img/galeria/finca.jpg')); ?>" alt="Ganadería">
         </div>
 
-        <!-- Col der, fila 2: crops-1 (portrait, cultivos vegetales) -->
+        
         <div class="mosaic-item p-crops1">
             <img src="<?php echo e(asset('img/galeria/gallina.jpg')); ?>" alt="Cultivos">
         </div>
 
-        <!-- Ambas cols, fila 3: farmer-1 (landscape, productor en campo) -->
         <div class="mosaic-item p-farmer">
             <img src="<?php echo e(asset('img/galeria/arroz.jpg')); ?>" alt="Productor">
         </div>
 
     </div>
 
-    <!-- Logo arriba izquierda -->
+    
     <div class="panel-logo">
         <img src="<?php echo e(asset('img/logo-seedling-fondo-verde.svg')); ?>" alt="Agrogranja">
         <span>Agrogranja</span>
     </div>
 
-    <!-- Overlay con texto abajo -->
+  
     <div class="photo-overlay">
         <p class="panel-tagline">Para pequeños productores</p>
         <h2 class="panel-quote">Gestiona tu finca como nunca antes</h2>

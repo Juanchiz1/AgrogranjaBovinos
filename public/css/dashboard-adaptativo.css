@@ -1,8 +1,3 @@
-/* ════════════════════════════════════════════════════════════════
-   AGROGRANJA · DASHBOARD ADAPTATIVO (Fase 2)
-   KPIs por línea productiva: tarjetas con franja de color a la
-   izquierda y métricas en columnas.
-   ════════════════════════════════════════════════════════════════ */
 
 .kpis-lineas-grid {
   display: grid;
