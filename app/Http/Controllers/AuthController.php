@@ -21,34 +21,50 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
-        ], [
-            'email.required'    => 'El correo es obligatorio.',
-            'email.email'       => 'Ingresa un correo válido.',
-            'password.required' => 'La contraseña es obligatoria.',
-        ]);
+   public function login(Request $request)
+{
+    $request->validate([
+        'email'    => 'required|email',
+        'password' => 'required',
+    ], [
+        'email.required'    => 'El correo es obligatorio.',
+        'email.email'       => 'Ingresa un correo válido.',
+        'password.required' => 'La contraseña es obligatoria.',
+    ]);
 
-        $user = DB::table('usuarios')
-            ->where('email', strtolower(trim($request->email)))
-            ->where('activo', 1)
-            ->first();
+    // Buscar solo por email 
+    $user = DB::table('usuarios')
+        ->where('email', strtolower(trim($request->email)))
+        ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['email' => 'Correo o contraseña incorrectos.'])->withInput();
-        }
-
-        session(['usuario_id' => $user->id, 'usuario_nombre' => $user->nombre]);
-
-        if (!$user->onboarding_completado) {
-            return redirect()->route('onboarding');
-        }
-
-        return redirect()->route('dashboard');
+    if (!$user) {
+        return back()
+            ->withErrors(['email' => 'No existe una cuenta con ese correo.'])
+            ->withInput();
     }
+
+    // Email existe  verificar contraseña
+    if (!Hash::check($request->password, $user->password)) {
+        return back()
+            ->withErrors(['password' => 'La contraseña es incorrecta.'])
+            ->withInput();
+    }
+
+    // Cuenta desactivada o inexistente
+    if (!$user->activo) {
+        return back()
+            ->withErrors(['email' => 'Tu cuenta está desactivada. Contacta al soporte.'])
+            ->withInput();
+    }
+
+    session(['usuario_id' => $user->id, 'usuario_nombre' => $user->nombre]);
+
+    if (!$user->onboarding_completado) {
+        return redirect()->route('onboarding');
+    }
+
+    return redirect()->route('dashboard');
+}
 
     public function showRegister()
     {
