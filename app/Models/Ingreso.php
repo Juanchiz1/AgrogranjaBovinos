@@ -9,7 +9,7 @@ class Ingreso extends Model
 {
     protected $table = 'ingresos';
 
-    // Solo tiene creado_en, sin actualizado_en
+  
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = null;
     public $timestamps = false;

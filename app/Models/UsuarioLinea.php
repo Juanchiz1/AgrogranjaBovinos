@@ -5,12 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/**
- * Línea productiva activada por un usuario, con su configuración:
- * cantidad aproximada, escala (pequeña/mediana/grande) y metadata
- * (JSON) para configs específicas (ej: lechería sí/no, tipo de
- * postura, etc.).
- */
+
 class UsuarioLinea extends Model
 {
     protected $table = 'usuario_lineas';

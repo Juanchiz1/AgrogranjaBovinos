@@ -9,9 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Historial de cambios de fase fenológica de un cultivo.
  * Tabla: cultivo_historial_fases
  * 
- * NOTA: Este modelo es necesario para que Cultivo::historialFases()
- * funcione correctamente como relación Eloquent HasMany.
- * (Corrección del Bug #1 de Fase 3)
  */
 class CultivoHistorialFase extends Model
 {

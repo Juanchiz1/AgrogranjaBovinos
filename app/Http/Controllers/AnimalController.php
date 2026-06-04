@@ -119,13 +119,13 @@ class AnimalController extends Controller
         $especies = $this->especies();
         $personas = Persona::delUsuario($uid)->activos()->orderBy('nombre')->get();
 
-        // ── GENEALOGÍA ─────────────────────────────────────────────
-        // Madre del animal
+        // GENEALOGÍA
+       
         $madre = $animal->madre_id
             ? DB::table('animales')->find($animal->madre_id)
             : null;
 
-        // Hermanos: mismo madre_id, solo si tiene madre
+        // Hermanos: mismo madre_id
         $hermanos = $animal->madre_id
             ? DB::table('animales')
                 ->where('madre_id', $animal->madre_id)
@@ -284,7 +284,7 @@ $compradores = DB::table('personas')
             }
         }
 
-        // ── Consumo de inventario ─────────────────────────────────────────
+        //  Consumo de inventario 
 if ($request->inventario_id && $request->inventario_cantidad > 0) {
     $insumo = DB::table('inventario')
         ->where('id', $request->inventario_id)
@@ -309,7 +309,7 @@ if ($request->inventario_id && $request->inventario_cantidad > 0) {
     }
 }
 
-// ── Labor en persona_labores ──────────────────────────────────────
+//  Labor en persona_labores 
 if ($request->persona_id) {
     try {
         DB::table('persona_labores')->insert([

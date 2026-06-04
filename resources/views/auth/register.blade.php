@@ -381,23 +381,21 @@
     <div class="photo-side">
 
         <div class="photo-grid">
-
-            <!-- Col izq, filas 1-2: crops-2 (vertical, montaña/finca) -->
             <div class="ph ph-crops2">
                 <img src="{{ asset('img/galeria/arroz.jpg') }}" alt="Finca colombiana">
             </div>
 
-            <!-- Col der, fila 1: farmer-1 (horizontal, productor en campo) -->
+            
             <div class="ph ph-farmer">
                 <img src="{{ asset('img/galeria/vaca.jpg') }}" alt="Productor en su finca">
             </div>
 
-            <!-- Col der, filas 2-3: cows (vertical, vacas en corral) -->
+            
             <div class="ph ph-cows">
                 <img src="{{ asset('img/galeria/crops-2.jpg') }}" alt="Ganadería">
             </div>
 
-            <!-- Col izq, fila 3: milking (vertical oscuro, ordeño) -->
+           
             <div class="ph ph-milking">
                 <img src="{{ asset('img/galeria/fields.jpg') }}" alt="Producción lechera">
             </div>

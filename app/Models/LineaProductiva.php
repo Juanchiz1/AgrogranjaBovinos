@@ -8,14 +8,6 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Catálogo de líneas productivas (cultivos, bovino, avícola, etc.).
- *
- * Expone un helper estático `LineaProductiva::activa($codigo)` para que
- * vistas y controladores consulten rápidamente si el usuario actual
- * tiene esa línea activada. Cachea el resultado en memoria por request
- * para no consultar la BD múltiples veces.
- *
- * FASE 2: añade el mapa línea → especies y el helper `tieneAnimales()`,
- * usados por el layout, el dashboard y AnimalController.
  */
 class LineaProductiva extends Model
 {
@@ -43,9 +35,8 @@ class LineaProductiva extends Model
      * Mapa de qué especies de la tabla `animales` corresponden a cada
      * línea productiva. Si una línea no aparece aquí (cultivos), no
      * tiene animales asociados.
-     *
-     * IMPORTANTE: las claves aquí deben coincidir EXACTAMENTE con los
-     * valores del campo `especie` que usa AnimalController.
+     * El helper `especiesSugeridas()` usa este mapa para sugerir especies
+     * relevantes al usuario según sus líneas activas. Siempre incluye 'Otro'
      */
     public const ESPECIES_POR_LINEA = [
         'bovino'        => ['Ganado bovino', 'Terneros'],

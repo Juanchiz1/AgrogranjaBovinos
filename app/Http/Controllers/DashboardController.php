@@ -8,12 +8,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // ANTES (líneas 11-13):
 $uid  = session('usuario_id');
 $user = DB::table('usuarios')->find($uid);
 if ($user && !isset($user->created_at)) $user->created_at = $user->creado_en ?? null;
 
-// DESPUÉS (pega el contenido del txt):
 $uid  = session('usuario_id');
 if (!$uid) return redirect()->route('login');
 $user = DB::table('usuarios')->find($uid);
@@ -91,16 +89,7 @@ if (!isset($user->created_at)) $user->created_at = $user->creado_en ?? null;
         ));
     }
 
-    /**
-     * Calcula los KPIs específicos de cada línea productiva activa.
-     * Devuelve un array asociativo: ['bovino' => [...], 'avicola' => [...], ...]
-     *
-     * Cada bloque tiene la forma:
-     *   ['titulo' => string, 'emoji' => string, 'metricas' => [['valor','label'], ...]]
-     *
-     * Diseño defensivo: cada try/catch evita que una tabla faltante
-     * (ej. animal_produccion no migrada todavía) tumbe el dashboard.
-     */
+
     private function calcularKpisPorLinea(int $uid, array $activas, string $hoy, string $inicio, string $fin): array
     {
         $kpis = [];

@@ -51,6 +51,7 @@ class Persona extends Model
     {
         return $query->where('tipo', 'trabajador');
     }
+    
 
     public function scopeProveedores($query)
     {

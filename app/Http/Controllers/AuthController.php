@@ -138,10 +138,6 @@ class AuthController extends Controller
 
     /**
      * Recibe los datos del wizard completo:
-     *   - Datos de la finca (paso 2)
-     *   - Líneas productivas seleccionadas (paso 3)
-     *   - Configuración de cada línea: cantidad, escala, metadata (paso 4)
-     *
      * Guarda todo y marca onboarding_completado = 1.
      */
     public function onboardingComplete(Request $request)

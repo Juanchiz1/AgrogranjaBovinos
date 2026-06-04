@@ -243,36 +243,42 @@ if ($request->persona_nomina_id &&
      * Actualiza un gasto existente.
      */
     public function update(GastoRequest $request, $id)
-    {
-        $uid   = session('usuario_id');
-        $gasto = Gasto::where('id',$id)->where('usuario_id',$uid)->firstOrFail();
+{
+    $uid   = session('usuario_id');
+    
+    // Verificar que el gasto existe y pertenece al usuario
+    $gasto = DB::table('gastos')->where('id', $id)->where('usuario_id', $uid)->first();
+    if (!$gasto) abort(404);
 
-        $data = [
-            'categoria'       => $request->categoria,
-            'descripcion'     => $request->descripcion,
-            'cantidad'        => $request->cantidad ?: null,
-            'unidad_cantidad' => $request->unidad_cantidad,
-            'valor'           => $request->valor,
-            'fecha'           => $request->fecha,
-            'proveedor'       => $request->proveedor,
-            'proveedor_id'    => $request->proveedor_id ?: null,
-            'cultivo_id'      => $request->cultivo_id ?: null,
-            'animal_id'       => $request->animal_id ?: null,
-            'cosecha_id'      => $request->cosecha_id ?: null,
-            'tarea_id'        => $request->tarea_id ?: null,
-            'factura_numero'  => $request->factura_numero,
-            'notas'           => $request->notas,
-        ];
+    $data = [
+        'categoria'       => $request->categoria,
+        'descripcion'     => $request->descripcion,
+        'cantidad'        => $request->cantidad ?: null,
+        'unidad_cantidad' => $request->unidad_cantidad,
+        'valor'           => $request->valor,
+        'fecha'           => $request->fecha,
+        'proveedor'       => $request->proveedor,
+        'proveedor_id'    => $request->proveedor_id ?: null,
+        'cultivo_id'      => $request->cultivo_id ?: null,
+        'animal_id'       => $request->animal_id ?: null,
+        'cosecha_id'      => $request->cosecha_id ?: null,
+        'tarea_id'        => $request->tarea_id ?: null,
+        'factura_numero'  => $request->factura_numero,
+        'notas'           => $request->notas,
+    ];
 
-        if ($request->hasFile('foto_factura')) {
-            $this->eliminarImagen($gasto->foto_factura);
-            $data['foto_factura'] = $this->guardarImagen($request->file('foto_factura'), 'gastos/facturas');
+    if ($request->hasFile('foto_factura')) {
+        // Eliminar foto anterior si existe
+        if ($gasto->foto_factura && file_exists(public_path($gasto->foto_factura))) {
+            @unlink(public_path($gasto->foto_factura));
         }
-
-        $gasto->update($data);
-
-        return redirect()->route('gastos.index')->with('msg','Gasto actualizado.')->with('msgType','success');
+        $data['foto_factura'] = $this->guardarImagen($request->file('foto_factura'), 'gastos/facturas');
     }
+
+    DB::table('gastos')->where('id', $id)->where('usuario_id', $uid)->update($data);
+
+    return redirect()->route('gastos.index')->with('msg','Gasto actualizado.')->with('msgType','success');
+}
 
     /**
      * Elimina un gasto y su foto de factura si existe.
@@ -371,7 +377,8 @@ if ($request->persona_nomina_id &&
     public function generarRecurrente($id)
     {
         $uid = session('usuario_id');
-        $r   = DB::table('gastos_recurrentes')->where('id',$id)->where('usuario_id',$uid)->firstOrFail();
+        $r = DB::table('gastos_recurrentes')->where('id',$id)->where('usuario_id',$uid)->first();
+if (!$r) abort(404);
 
         Gasto::create([
             'usuario_id'    => $uid,

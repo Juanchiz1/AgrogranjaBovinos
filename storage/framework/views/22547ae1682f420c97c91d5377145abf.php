@@ -16,7 +16,7 @@
             min-height: 100vh;
         }
 
-        /* ── PANEL IZQUIERDO — fotos ── */
+        /* Fotos del panel */
         .photo-panel {
             display: none;
             position: relative;
@@ -37,25 +37,25 @@
             gap: 3px;
         }
 
-        /* crops-2: col 1, filas 1-2 (portrait alto) */
+       
         .p-crops2 {
             grid-column: 1;
             grid-row: 1 / 3;
         }
 
-        /* cows: col 2, fila 1 */
+        
         .p-cows {
             grid-column: 2;
             grid-row: 1;
         }
 
-        /* crops-1: col 2, fila 2 */
+       
         .p-crops1 {
             grid-column: 2;
             grid-row: 2;
         }
 
-        /* farmer-1: ambas cols, fila 3 (landscape ocupa todo el ancho) */
+        
         .p-farmer {
             grid-column: 1 / 3;
             grid-row: 3;
@@ -74,13 +74,13 @@
         }
         .mosaic-item:hover img { transform: scale(1.04); }
 
-        /* Fallback colors si no carga imagen */
+        
         .p-crops2  { background: #1A4731; }
         .p-cows    { background: #1D4A2A; }
         .p-crops1  { background: #2D5C1E; }
         .p-farmer  { background: #1A3D22; }
 
-        /* ── LOGO arriba ── */
+        
         .panel-logo {
             position: absolute;
             top: 1.75rem;
@@ -103,7 +103,7 @@
             text-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
 
-        /* ── OVERLAY texto abajo ── */
+        
         .photo-overlay {
             position: absolute;
             inset: 0;
@@ -154,7 +154,7 @@
             backdrop-filter: blur(4px);
         }
 
-        /* ── PANEL DERECHO — formulario ── */
+       
         .form-panel {
             flex: 1;
             background: linear-gradient(160deg, #2D7A45 0%, #1A4731 55%, #3D6B28 100%);
@@ -166,7 +166,7 @@
             min-height: 100vh;
         }
 
-        /* Logo solo en mobile */
+       
         .mobile-logo {
             display: flex;
             flex-direction: column;
@@ -324,7 +324,7 @@
 <!-- ── PANEL FORMULARIO ── -->
 <div class="form-panel">
 
-    <!-- Logo mobile -->
+    
     <div class="mobile-logo">
         <img src="<?php echo e(asset('img/logo-seedling-transparente.svg')); ?>" alt="Agrogranja"
              onerror="this.style.display='none'">
@@ -335,9 +335,17 @@
         <h2>Iniciar sesión</h2>
         <p class="subtitle">Accede a tu cuenta</p>
 
-        <?php if(session('error')): ?>
-            <div class="alert-error"><?php echo e(session('error')); ?></div>
-        <?php endif; ?>
+        <?php if($errors->has('email')): ?>
+    <div class="alert-error"><?php echo e($errors->first('email')); ?></div>
+<?php endif; ?>
+
+<?php if($errors->has('password')): ?>
+    <div class="alert-error"><?php echo e($errors->first('password')); ?></div>
+<?php endif; ?>
+
+<?php if(session('error')): ?>
+    <div class="alert-error"><?php echo e(session('error')); ?></div>
+<?php endif; ?>
 
         <form method="POST" action="<?php echo e(route('login')); ?>">
             <?php echo csrf_field(); ?>

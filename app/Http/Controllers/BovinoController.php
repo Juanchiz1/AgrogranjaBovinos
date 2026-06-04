@@ -14,7 +14,7 @@ class BovinoController extends Controller
     // Especies bovinas manejadas
     private const ESPECIES_BOVINAS = ['Ganado bovino', 'Terneros'];
 
-    // Protocolos sanitarios estándar en colombia
+    // Protocolos sanitarios 
     private const PROTOCOLOS = [
         ['protocolo'=>'aftosa',          'nombre'=>'Vacunación Aftosa',               'frecuencia_dias'=>180, 'via'=>'subcutanea'],
         ['protocolo'=>'brucelosis',      'nombre'=>'Vacunación Brucelosis (hembras)', 'frecuencia_dias'=>365, 'via'=>'subcutanea'],

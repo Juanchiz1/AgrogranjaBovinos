@@ -105,16 +105,7 @@ class Cultivo extends Model
         return (int) round((($actual + 1) / $total) * 100);
     }
 
-    /**
-     * Comparativa de rendimiento vs promedio regional.
-     *
-     * CORRECCIÓN BUG #4: El llamador debe pasar el departamento desde la BD
-     * del usuario, no desde session(). En CultivoFaseController::fenologia()
-     * se corrigió para usar $user->departamento ?? 'Córdoba'.
-     *
-     * CORRECCIÓN BUG #5: Cuando tipo='sin_referencia', ahora se incluye
-     * la clave 'unidad' para evitar el ?? 'ton/ha' como única defensa.
-     */
+   
     public function comparativaRendimiento(string $departamento = 'Córdoba'): array
     {
         if (!$this->rendimiento_real_ha) {
